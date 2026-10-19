@@ -388,7 +388,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // 引入 Flatpickr JS
@@ -469,15 +469,26 @@
         });
 
         async function initApp() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined') {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+            // 使用 onAuthStateChanged 確保登入狀態被正確捕捉
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    listenToTrips();
                 } else {
-                    await signInAnonymously(auth);
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined') {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("登入錯誤:", error);
+                        showToast('資料庫連線失敗，請檢查設定');
+                    }
                 }
-                currentUser = auth.currentUser;
-                listenToTrips();
-                
+            });
+
+            try {
                 // 初始化時間選擇器套件
                 flatpickr(".time-picker", {
                     enableTime: true,
@@ -494,8 +505,7 @@
                 });
 
             } catch (error) {
-                console.error("登入錯誤:", error);
-                showToast('資料庫連線失敗，請檢查設定');
+                console.error("套件初始化錯誤:", error);
             }
         }
         initApp();
@@ -755,12 +765,20 @@
         // 新增旅程
         document.getElementById('form-new-trip').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!currentUser) return;
+            if (!currentUser) {
+                window.showConfirmModal('連線異常', '尚未連線到資料庫，請稍候再試或重新整理網頁。', null, true);
+                return;
+            }
             
             const tripName = document.getElementById('new-trip-name').value;
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerText = '建立中...';
+
             try {
                 const docRef = await addDoc(collection(db, getPath('trips')), {
                     name: tripName,
+                    userId: currentUser.uid, // 加上建立者的 UID
                     createdAt: Date.now()
                 });
                 currentTripId = docRef.id;
@@ -770,7 +788,10 @@
                 showToast('已建立新計畫！');
             } catch (error) {
                 console.error("建立旅程失敗", error);
-                showToast('建立失敗');
+                window.showConfirmModal('建立失敗', '伺服器拒絕了儲存請求，請確認 Firebase 資料庫的「規則 (Rules)」是否允許寫入。', null, true);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = '建立';
             }
         });
 
