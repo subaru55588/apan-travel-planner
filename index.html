@@ -3,184 +3,399 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>和風旅行規劃帳</title>
-    <!-- 引入 Tailwind CSS 並配置日系顏色 -->
+    <title>旅の計画帳 | 和風極簡行程</title>
+    <!-- 引入 Noto Serif TC (明體) 與 Noto Sans TC (黑體) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+    <!-- 引入 FontAwesome 圖示庫 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入 Flatpickr (精美時間選擇器) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        muji: '#F9F6F0', // 米白背景
-                        matcha: '#8BA989', // 抹茶綠
-                        matchaLight: '#A2C2A0',
-                        matchaDark: '#708E6E',
-                        sakura: '#F6D2D9', // 櫻花粉
-                        charcoal: '#4A4A4A', // 深灰字體
-                        wood: '#D4C3A3'
+                        washi: '#F9F7F3', // 更溫暖的和紙白
+                        matcha: '#6B8E67', // 稍微加深的抹茶綠，提升對比
+                        matchaHover: '#53734F',
+                        sumi: '#4A4A4A',   // 柔和的炭黑
+                        wood: '#E3DCD2',   // 更淡雅的枯木灰
+                        sakura: '#E8D3D8'  
                     },
                     fontFamily: {
-                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                        serif: ['"Noto Serif TC"', 'serif'], // 標題用明體
+                        sans: ['"Noto Sans TC"', 'sans-serif'], // 內文用黑體
                     }
                 }
             }
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
     <style>
         body {
-            background-color: #F9F6F0;
+            background-color: #F4F1EA; /* 溫潤的米色底 */
             color: #4A4A4A;
-            background-image: radial-gradient(#D4C3A3 0.5px, transparent 0.5px);
-            background-size: 20px 20px;
+            /* 加入極具質感的「和紙雜訊」紋理，取代原本的點點 */
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
         }
-        .wafu-card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(139, 169, 137, 0.2);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+        /* 隱藏捲軸但保持可捲動 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
         }
-        .wafu-card:hover {
-            box-shadow: 0 6px 20px rgba(139, 169, 137, 0.15);
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
-        .input-wafu {
-            border: 1px solid #D4C3A3;
-            background: #F9F6F0;
+
+        /* 日系極簡輸入框 (底線風格) */
+        .input-zen {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #D4C8B8;
+            padding: 0.5rem 0.5rem 0.5rem 2rem; /* 左側留空間給圖示 */
+            font-family: '"Noto Sans TC"', sans-serif;
             transition: all 0.3s ease;
-        }
-        .input-wafu:focus {
             outline: none;
-            border-color: #8BA989;
-            box-shadow: 0 0 0 3px rgba(139, 169, 137, 0.2);
-            background: #fff;
         }
-        .btn-matcha {
-            background-color: #8BA989;
-            color: white;
-            transition: all 0.3s ease;
-        }
-        .btn-matcha:hover {
-            background-color: #708E6E;
-            transform: translateY(-1px);
-        }
-        .btn-danger {
-            background-color: #e09f9f;
-            color: white;
-            transition: all 0.3s ease;
-        }
-        .btn-danger:hover {
-            background-color: #c98080;
+        .input-zen:focus {
+            border-bottom-color: #7A9476;
+            background: linear-gradient(to top, rgba(122, 148, 118, 0.05) 0%, transparent 100%);
         }
         
-        /* Modal Transitions */
-        .modal-overlay {
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
+        /* 輸入框圖示定位容器 */
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
         }
-        .modal-overlay.active {
+        .input-icon {
+            position: absolute;
+            left: 0.5rem;
+            color: #9CA3AF;
+            transition: color 0.3s ease;
+            pointer-events: none; /* 讓點擊穿透到輸入框 */
+        }
+        .input-wrapper:focus-within .input-icon {
+            color: #6B8E67;
+        }
+
+        /* 隱藏原生時間選擇器圖示 (由 Flatpickr 取代) */
+        input[type="time"]::-webkit-calendar-picker-indicator,
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            display: none;
+        }
+
+        /* 覆寫 Flatpickr 樣式為日系抹茶主題 */
+        .flatpickr-calendar {
+            font-family: '"Noto Sans TC"', sans-serif;
+            background: #F9F7F3 !important;
+            border: 1px solid #E3DCD2 !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06) !important;
+            border-radius: 8px !important;
+        }
+        .flatpickr-time input:hover, .flatpickr-time .flatpickr-am-pm:hover, .flatpickr-time input:focus, .flatpickr-time .flatpickr-am-pm:focus {
+            background: #F0F4EF !important;
+        }
+        .numInputWrapper span.arrowUp:after { border-bottom-color: #6B8E67 !important; }
+        .numInputWrapper span.arrowDown:after { border-top-color: #6B8E67 !important; }
+        .numInputWrapper span:hover { background: #6B8E67 !important; }
+        .numInputWrapper span:hover.arrowUp:after { border-bottom-color: white !important; }
+        .numInputWrapper span:hover.arrowDown:after { border-top-color: white !important; }
+
+        /* 卡片質感升級 */
+        .zen-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(227, 220, 210, 0.6);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+        .zen-card:hover {
+            box-shadow: 0 12px 24px rgba(107, 142, 103, 0.1);
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        /* 美化原生的時間/日期選擇器小圖示 */
+        input[type="time"]::-webkit-calendar-picker-indicator,
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.4;
+            transition: 0.2s;
+        }
+        input[type="time"]::-webkit-calendar-picker-indicator:hover,
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
             opacity: 1;
-            visibility: visible;
+        }
+
+        /* 卡片質感 */
+        .zen-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(212, 200, 184, 0.3);
+            transition: all 0.3s ease;
+        }
+        .zen-card:hover {
+            box-shadow: 0 8px 20px rgba(122, 148, 118, 0.08);
+            transform: translateY(-2px);
+        }
+
+        /* 按鈕樣式 */
+        .btn-zen {
+            background-color: transparent;
+            border: 1px solid #7A9476;
+            color: #7A9476;
+            transition: all 0.3s ease;
+        }
+        .btn-zen:hover {
+            background-color: #7A9476;
+            color: white;
+        }
+
+        /* Modal 動畫 */
+        .modal {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(2px);
+        }
+        .modal.active {
+            opacity: 1;
+            pointer-events: auto;
         }
         .modal-content {
-            transform: scale(0.95) translateY(-20px);
-            transition: transform 0.3s ease;
+            transform: translateY(20px) scale(0.95);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .modal-overlay.active .modal-content {
-            transform: scale(1) translateY(0);
+        .modal.active .modal-content {
+            transform: translateY(0) scale(1);
+        }
+
+        /* 列表載入動畫 */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-up {
+            animation: fadeUp 0.4s ease forwards;
         }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8 font-sans">
+<body class="min-h-screen font-sans flex flex-col">
 
-    <header class="max-w-7xl mx-auto mb-10 text-center">
-        <h1 class="text-4xl md:text-5xl font-bold text-matchaDark mb-2 tracking-widest">
-            <span class="text-matcha">❀</span> 旅の計画帳
-        </h1>
-        <p class="text-charcoal opacity-70 tracking-wider">多人即時協作・旅遊行程規劃</p>
-        <div id="auth-status" class="mt-2 text-sm text-matcha font-medium animate-pulse">連線中...</div>
+    <header class="bg-white/80 backdrop-blur-md border-b border-wood sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 md:px-8 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-fan text-matcha text-2xl animate-[spin_10s_linear_infinite]"></i>
+                <h1 class="text-2xl font-serif font-bold text-sumi tracking-widest">旅の計画帳</h1>
+            </div>
+
+            <!-- 旅程切換選單 -->
+            <div class="flex items-center gap-2 w-full md:w-auto">
+                <div class="input-wrapper bg-washi rounded-md border border-wood px-2 py-1 flex-1 md:w-64">
+                    <i class="fa-solid fa-plane-departure text-matcha text-sm mr-2"></i>
+                    <select id="trip-selector" class="bg-transparent w-full outline-none text-sumi text-sm py-1 cursor-pointer">
+                        <option value="">載入旅程中...</option>
+                    </select>
+                </div>
+                <button onclick="openAddTripModal()" class="bg-matcha text-white px-3 py-1.5 rounded-md hover:bg-matchaHover transition text-sm whitespace-nowrap shadow-sm">
+                    <i class="fa-solid fa-plus mr-1"></i> 新行程
+                </button>
+            </div>
+
+        </div>
+        
+        <!-- 日程過濾標籤 (動態產生) -->
+        <div class="max-w-7xl mx-auto px-4 md:px-8 py-2">
+            <div class="flex items-center justify-between border-t border-gray-100 py-2">
+                <div id="day-filters" class="flex gap-4 overflow-x-auto no-scrollbar flex-1">
+                    <button class="day-filter-btn active text-matcha font-bold border-b-2 border-matcha pb-1 whitespace-nowrap px-2" data-date="all">全日程</button>
+                </div>
+                <button id="btn-delete-day" class="hidden flex-shrink-0 text-red-400 hover:text-red-500 hover:bg-red-50 text-sm ml-4 px-3 py-1.5 border border-red-200 rounded-md transition-colors shadow-sm">
+                    <i class="fa-solid fa-trash-can mr-1"></i> 刪除本日所有安排
+                </button>
+            </div>
+        </div>
     </header>
 
-    <main class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <main class="max-w-7xl mx-auto px-4 md:px-8 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 w-full">
         
         <!-- 區塊 1: 行程安排 -->
-        <section class="wafu-card p-6 flex flex-col h-full">
-            <h2 class="text-2xl font-medium mb-4 text-matcha border-b-2 border-matchaLight pb-2">📅 行程安排</h2>
+        <section class="flex flex-col h-[75vh]">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="fa-regular fa-calendar-check text-matcha text-xl"></i>
+                <h2 class="text-xl font-serif font-bold text-sumi">行程安排</h2>
+            </div>
             
-            <form id="form-itinerary" class="mb-6 space-y-3">
-                <div class="flex gap-2">
-                    <input type="number" id="it-day" placeholder="第幾天?" class="input-wafu w-1/3 p-2 rounded-md" required min="1">
-                    <input type="time" id="it-time" class="input-wafu w-2/3 p-2 rounded-md" required>
-                </div>
-                <input type="text" id="it-title" placeholder="行程名稱" class="input-wafu w-full p-2 rounded-md" required>
-                <input type="text" id="it-notes" placeholder="備註 (選填)" class="input-wafu w-full p-2 rounded-md">
-                <button type="submit" class="btn-matcha w-full py-2 rounded-md font-medium">＋ 新增行程</button>
-            </form>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-wood/40 mb-4 relative group">
+                <form id="form-itinerary" class="space-y-4">
+                    <div class="flex gap-4">
+                        <div class="input-wrapper w-1/2">
+                            <i class="fa-solid fa-calendar-day input-icon"></i>
+                            <input type="text" id="it-date" placeholder="選擇日期" class="input-zen date-picker" required readonly style="cursor: pointer;">
+                        </div>
+                        <div class="input-wrapper w-1/2">
+                            <i class="fa-regular fa-clock input-icon"></i>
+                            <input type="text" id="it-time" class="input-zen time-picker" placeholder="選擇時間" required readonly style="cursor: pointer;">
+                        </div>
+                    </div>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-location-dot input-icon"></i>
+                        <input type="text" id="it-title" placeholder="行程名稱 (例: 抵達那霸機場)" class="input-zen" required>
+                    </div>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-pen input-icon text-xs"></i>
+                        <input type="text" id="it-notes" placeholder="備註事項 (選填)" class="input-zen">
+                    </div>
+                    <button type="submit" class="w-full btn-zen py-2 rounded-md font-medium tracking-wider"><i class="fa-solid fa-plus mr-1"></i> 儲存行程</button>
+                </form>
+            </div>
             
-            <div id="list-itinerary" class="space-y-4 overflow-y-auto flex-1 pr-2" style="max-height: 60vh;">
-                <!-- 列表動態產生區 -->
+            <div id="list-itinerary" class="space-y-3 overflow-y-auto flex-1 pr-2 pb-10">
+                <!-- 行程列表 -->
             </div>
         </section>
 
         <!-- 區塊 2: 景點口袋名單 -->
-        <section class="wafu-card p-6 flex flex-col h-full">
-            <h2 class="text-2xl font-medium mb-4 text-matcha border-b-2 border-matchaLight pb-2">⛩️ 景點口袋名單</h2>
+        <section class="flex flex-col h-[75vh]">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="fa-solid fa-torii-gate text-matcha text-xl"></i>
+                <h2 class="text-xl font-serif font-bold text-sumi">景點口袋名單</h2>
+            </div>
             
-            <form id="form-attraction" class="mb-6 space-y-3">
-                <input type="text" id="att-name" placeholder="景點名稱" class="input-wafu w-full p-2 rounded-md" required>
-                <input type="url" id="att-link" placeholder="Google Maps 連結" class="input-wafu w-full p-2 rounded-md">
-                <input type="text" id="att-duration" placeholder="預計停留時間 (例: 2小時)" class="input-wafu w-full p-2 rounded-md">
-                <button type="submit" class="btn-matcha w-full py-2 rounded-md font-medium">＋ 新增景點</button>
-            </form>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-wood/40 mb-4">
+                <form id="form-attraction" class="space-y-4">
+                    <div class="flex gap-4">
+                        <div class="input-wrapper w-1/2">
+                            <i class="fa-solid fa-calendar-day input-icon"></i>
+                            <input type="text" id="att-date" placeholder="綁定日期 (選填)" class="input-zen date-picker" readonly style="cursor: pointer;">
+                        </div>
+                        <div class="input-wrapper w-1/2">
+                            <i class="fa-solid fa-hourglass-half input-icon"></i>
+                            <input type="text" id="att-duration" placeholder="預計停留 (例: 2小時)" class="input-zen">
+                        </div>
+                    </div>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-camera input-icon"></i>
+                        <input type="text" id="att-name" placeholder="景點名稱" class="input-zen" required>
+                    </div>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-map-location-dot input-icon"></i>
+                        <input type="url" id="att-link" placeholder="Google Maps 連結 (選填)" class="input-zen">
+                    </div>
+                    <button type="submit" class="w-full btn-zen py-2 rounded-md font-medium tracking-wider"><i class="fa-solid fa-plus mr-1"></i> 加入清單</button>
+                </form>
+            </div>
             
-            <div id="list-attraction" class="space-y-4 overflow-y-auto flex-1 pr-2" style="max-height: 60vh;">
-                <!-- 列表動態產生區 -->
+            <div id="list-attraction" class="space-y-3 overflow-y-auto flex-1 pr-2 pb-10">
+                <!-- 景點列表 -->
             </div>
         </section>
 
         <!-- 區塊 3: 在地美食清單 -->
-        <section class="wafu-card p-6 flex flex-col h-full">
-            <h2 class="text-2xl font-medium mb-4 text-matcha border-b-2 border-matchaLight pb-2">🍱 在地美食清單</h2>
+        <section class="flex flex-col h-[75vh]">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="fa-solid fa-bowl-rice text-matcha text-xl"></i>
+                <h2 class="text-xl font-serif font-bold text-sumi">美食筆記</h2>
+            </div>
             
-            <form id="form-food" class="mb-6 space-y-3">
-                <input type="text" id="food-name" placeholder="餐廳名稱" class="input-wafu w-full p-2 rounded-md" required>
-                <input type="text" id="food-rec" placeholder="必吃推薦 (例: 醬油拉麵)" class="input-wafu w-full p-2 rounded-md">
-                <input type="url" id="food-link" placeholder="食記/導航連結" class="input-wafu w-full p-2 rounded-md">
-                <button type="submit" class="btn-matcha w-full py-2 rounded-md font-medium">＋ 新增美食</button>
-            </form>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-wood/40 mb-4">
+                <form id="form-food" class="space-y-4">
+                     <div class="flex gap-4">
+                        <div class="input-wrapper w-1/2">
+                            <i class="fa-solid fa-calendar-day input-icon"></i>
+                            <input type="text" id="food-date" placeholder="綁定日期 (選填)" class="input-zen date-picker" readonly style="cursor: pointer;">
+                        </div>
+                        <div class="input-wrapper w-1/2">
+                            <i class="fa-solid fa-star input-icon"></i>
+                            <input type="text" id="food-rec" placeholder="必吃推薦 (選填)" class="input-zen">
+                        </div>
+                    </div>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-store input-icon"></i>
+                        <input type="text" id="food-name" placeholder="餐廳名稱" class="input-zen" required>
+                    </div>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-link input-icon"></i>
+                        <input type="url" id="food-link" placeholder="食記或導航連結 (選填)" class="input-zen">
+                    </div>
+                    <button type="submit" class="w-full btn-zen py-2 rounded-md font-medium tracking-wider"><i class="fa-solid fa-plus mr-1"></i> 記錄美食</button>
+                </form>
+            </div>
             
-            <div id="list-food" class="space-y-4 overflow-y-auto flex-1 pr-2" style="max-height: 60vh;">
-                <!-- 列表動態產生區 -->
+            <div id="list-food" class="space-y-3 overflow-y-auto flex-1 pr-2 pb-10">
+                <!-- 美食列表 -->
             </div>
         </section>
 
     </main>
 
-    <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center modal-overlay p-4">
-        <div class="bg-muji wafu-card w-full max-w-md p-6 modal-content flex flex-col max-h-[90vh]">
-            <h3 id="modal-title" class="text-xl font-bold text-matchaDark mb-4 border-b-2 border-matchaLight pb-2">編輯資料</h3>
-            <form id="modal-form" class="space-y-3 flex-1 overflow-y-auto pr-2">
-                <div id="modal-fields" class="space-y-3"></div>
+    <div id="trip-modal" class="fixed inset-0 bg-sumi/40 z-50 flex items-center justify-center modal px-4">
+        <div class="bg-washi w-full max-w-sm p-6 rounded-xl shadow-2xl modal-content">
+            <h3 class="text-xl font-serif font-bold text-sumi mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-suitcase-rolling text-matcha"></i> 新增旅遊計畫
+            </h3>
+            <form id="form-new-trip" class="space-y-4">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-tag input-icon"></i>
+                    <input type="text" id="new-trip-name" placeholder="例如: 11月 沖繩自駕遊" class="input-zen" required>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeTripModal()" class="px-4 py-2 text-gray-500 hover:text-gray-700 transition text-sm">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-matcha text-white rounded-md hover:bg-matchaHover transition text-sm shadow-sm">建立</button>
+                </div>
             </form>
-            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-wood">
-                <button type="button" id="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">取消</button>
-                <button type="button" id="modal-save" class="px-4 py-2 btn-matcha rounded-md">儲存變更</button>
+        </div>
+    </div>
+
+    <div id="edit-modal" class="fixed inset-0 bg-sumi/40 z-50 flex items-center justify-center modal px-4">
+        <div class="bg-washi w-full max-w-md p-6 rounded-xl shadow-2xl modal-content flex flex-col max-h-[90vh]">
+            <h3 id="modal-title" class="text-xl font-serif font-bold text-sumi mb-4 border-b border-wood pb-2">編輯內容</h3>
+            <form id="modal-form" class="space-y-4 flex-1 overflow-y-auto pr-2 no-scrollbar">
+                <div id="modal-fields" class="space-y-4"></div>
+            </form>
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-wood/50">
+                <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-gray-500 hover:text-gray-700 transition text-sm">取消</button>
+                <button type="button" id="modal-save" class="px-4 py-2 bg-matcha text-white rounded-md hover:bg-matchaHover transition text-sm shadow-sm">儲存變更</button>
             </div>
         </div>
+    </div>
+
+    <!-- 自訂確認 / 警告對話框 -->
+    <div id="confirm-modal" class="fixed inset-0 bg-sumi/40 z-[60] flex items-center justify-center modal px-4">
+        <div class="bg-washi w-full max-w-sm p-6 rounded-xl shadow-2xl modal-content">
+            <h3 id="confirm-title" class="text-xl font-serif font-bold text-sumi mb-3 flex items-center gap-2"></h3>
+            <p id="confirm-msg" class="text-sumi/90 text-sm mb-6 leading-relaxed"></p>
+            <div class="flex justify-end gap-3">
+                <button type="button" id="confirm-cancel" class="px-4 py-2 text-gray-500 hover:text-gray-700 transition text-sm hidden">取消</button>
+                <button type="button" id="confirm-ok" class="px-4 py-2 bg-matcha text-white rounded-md hover:bg-matchaHover transition text-sm shadow-sm">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 狀態提示元件 -->
+    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-sumi text-white px-4 py-2 rounded-full shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none z-50 text-sm flex items-center gap-2">
+        <i class="fa-solid fa-circle-info text-matcha"></i> <span id="toast-msg"></span>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // 引入 Flatpickr JS
+        import "https://cdn.jsdelivr.net/npm/flatpickr";
         // =========================================================================
-        // 【請把你的 Firebase Config 貼在這裡】 
-        // 說明：若在外部環境執行，請將下方的 YOUR_... 替換成你 Firebase 後台取得的設定
-        // =========================================================================
-        let customFirebaseConfig = {
-            apiKey: "AIzaSyDCC0uaj6AVgzJVDuvUCOxKCLIK6HcYvuU",
+        const customFirebaseConfig = {
+            apiKey: "AIzaSyDCC0uaj6AVgzJVDuvUCOxKCLIK6HcYvuU", // 這是你之前的範例，確保是正確的
             authDomain: "my-travel-app-a3c9a.firebaseapp.com",
             projectId: "my-travel-app-a3c9a",
             storageBucket: "my-travel-app-a3c9a.firebasestorage.app",
@@ -189,251 +404,542 @@
             measurementId: "G-4VJJ4XBNDR"
         };
 
-        // 自動適配系統環境：若環境有提供設定檔則優先使用，否則使用上方的自訂設定
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : customFirebaseConfig;
         const currentAppId = typeof __app_id !== 'undefined' ? __app_id : 'my-travel-app';
 
-        // 初始化 Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         
         let currentUser = null;
+        let currentTripId = localStorage.getItem('lastTripId') || null;
+        let currentDateFilter = 'all'; 
+        
+        // 資料暫存
+        let allItinerary = [];
+        let allAttractions = [];
+        let allFood = [];
+        let unsubscribes = [];
 
-        // 處理路徑邏輯，符合協作環境規範
         function getPath(collectionName) {
             if (typeof __app_id !== 'undefined') {
                 return `artifacts/${currentAppId}/public/data/${collectionName}`;
             }
-            return collectionName; // 在本地或外部署時使用正常的集合名稱
+            return collectionName;
         }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('opacity-0');
+            setTimeout(() => toast.classList.add('opacity-0'), 3000);
+        }
+
+        // 自訂警告與確認對話框邏輯
+        let confirmActionCallback = null;
+        window.showConfirmModal = (title, msg, onConfirm = null, isAlert = false, icon = '<i class="fa-solid fa-circle-exclamation text-red-500"></i>') => {
+            document.getElementById('confirm-title').innerHTML = `${icon} ${title}`;
+            document.getElementById('confirm-msg').innerText = msg;
+            
+            const cancelBtn = document.getElementById('confirm-cancel');
+            const okBtn = document.getElementById('confirm-ok');
+            
+            if (isAlert) {
+                cancelBtn.classList.add('hidden');
+                okBtn.innerText = '我知道了';
+                okBtn.className = 'px-4 py-2 bg-matcha text-white rounded-md hover:bg-matchaHover transition text-sm shadow-sm';
+            } else {
+                cancelBtn.classList.remove('hidden');
+                okBtn.innerText = '確定';
+                okBtn.className = 'px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition text-sm shadow-sm';
+            }
+            
+            confirmActionCallback = onConfirm;
+            document.getElementById('confirm-modal').classList.add('active');
+        };
+
+        document.getElementById('confirm-cancel').addEventListener('click', () => {
+            document.getElementById('confirm-modal').classList.remove('active');
+            confirmActionCallback = null;
+        });
+
+        document.getElementById('confirm-ok').addEventListener('click', () => {
+            document.getElementById('confirm-modal').classList.remove('active');
+            if (confirmActionCallback) confirmActionCallback();
+        });
 
         async function initApp() {
             try {
-                // 優先使用系統提供的 Token，否則使用匿名登入
                 if (typeof __initial_auth_token !== 'undefined') {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
                 }
                 currentUser = auth.currentUser;
-                document.getElementById('auth-status').innerText = '🟢 已連線・即時同步中';
-                document.getElementById('auth-status').classList.remove('animate-pulse');
+                listenToTrips();
                 
-                // 開始監聽資料
-                listenToData();
+                // 初始化時間選擇器套件
+                flatpickr(".time-picker", {
+                    enableTime: true,
+                    noCalendar: true,
+                    dateFormat: "H:i",
+                    time_24hr: true,
+                    disableMobile: "true"
+                });
+                
+                // 初始化日期選擇器套件
+                flatpickr(".date-picker", {
+                    dateFormat: "Y-m-d",
+                    disableMobile: "true"
+                });
+
             } catch (error) {
                 console.error("登入錯誤:", error);
-                document.getElementById('auth-status').innerText = '🔴 連線失敗，請檢查設定';
-                document.getElementById('auth-status').classList.add('text-red-500');
+                showToast('資料庫連線失敗，請檢查設定');
             }
         }
-
         initApp();
 
-        function listenToData() {
+        // 監聽所有旅程清單
+        function listenToTrips() {
             if (!currentUser) return;
-
-            // 1. 監聽行程
-            onSnapshot(collection(db, getPath('itinerary')), (snapshot) => {
-                let data = [];
-                snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
-                // 在前端排序 (符合不能在後端使用 orderBy 的規範)
-                data.sort((a, b) => {
-                    if (Number(a.day) !== Number(b.day)) return Number(a.day) - Number(b.day);
-                    return a.time.localeCompare(b.time);
-                });
-                renderItinerary(data);
-            }, (error) => console.error("Itinerary Error:", error));
-
-            // 2. 監聽景點
-            onSnapshot(collection(db, getPath('attractions')), (snapshot) => {
-                let data = [];
-                snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
-                data.sort((a, b) => b.createdAt - a.createdAt); // 最新在前
-                renderAttractions(data);
-            }, (error) => console.error("Attractions Error:", error));
-
-            // 3. 監聽美食
-            onSnapshot(collection(db, getPath('food')), (snapshot) => {
-                let data = [];
-                snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
-                data.sort((a, b) => b.createdAt - a.createdAt);
-                renderFood(data);
-            }, (error) => console.error("Food Error:", error));
+            onSnapshot(collection(db, getPath('trips')), (snapshot) => {
+                let trips = [];
+                snapshot.forEach(doc => trips.push({ id: doc.id, ...doc.data() }));
+                trips.sort((a, b) => b.createdAt - a.createdAt); // 新的在上面
+                
+                const selector = document.getElementById('trip-selector');
+                selector.innerHTML = '';
+                
+                if (trips.length === 0) {
+                    selector.innerHTML = '<option value="">請先新增旅程 👉</option>';
+                    currentTripId = null;
+                    clearBoard();
+                } else {
+                    trips.forEach(trip => {
+                        const option = document.createElement('option');
+                        option.value = trip.id;
+                        option.textContent = trip.name;
+                        selector.appendChild(option);
+                    });
+                    
+                    // 如果沒有選定的 trip，或選定的 trip 被刪除了，就選第一個
+                    if (!currentTripId || !trips.find(t => t.id === currentTripId)) {
+                        currentTripId = trips[0].id;
+                    }
+                    selector.value = currentTripId;
+                    localStorage.setItem('lastTripId', currentTripId);
+                    
+                    // 載入該旅程的資料
+                    loadTripData();
+                }
+            });
         }
 
-        // 表單提交事件
+        // 切換旅程事件
+        document.getElementById('trip-selector').addEventListener('change', (e) => {
+            if (e.target.value) {
+                currentTripId = e.target.value;
+                localStorage.setItem('lastTripId', currentTripId);
+                currentDateFilter = 'all'; // 切換旅程時重置天數過濾
+                loadTripData();
+            }
+        });
+
+        function loadTripData() {
+            if (!currentTripId || !currentUser) return;
+            
+            // 清除舊的監聽器
+            unsubscribes.forEach(unsub => unsub());
+            unsubscribes = [];
+
+            // 監聽行程
+            const unsubIt = onSnapshot(collection(db, getPath('itinerary')), (snapshot) => {
+                allItinerary = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if(data.tripId === currentTripId) allItinerary.push({ id: doc.id, ...data });
+                });
+                // 排序：先按日期，再按時間
+                allItinerary.sort((a, b) => {
+                    const dateA = a.date || a.day || ''; // 兼容舊版資料
+                    const dateB = b.date || b.day || '';
+                    if (dateA !== dateB) return dateA.localeCompare(dateB);
+                    return (a.time || '').localeCompare(b.time || '');
+                });
+                updateDayFilters();
+                renderAll();
+            });
+            unsubscribes.push(unsubIt);
+
+            // 監聽景點
+            const unsubAtt = onSnapshot(collection(db, getPath('attractions')), (snapshot) => {
+                allAttractions = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if(data.tripId === currentTripId) allAttractions.push({ id: doc.id, ...data });
+                });
+                allAttractions.sort((a, b) => b.createdAt - a.createdAt);
+                updateDayFilters();
+                renderAll();
+            });
+            unsubscribes.push(unsubAtt);
+
+            // 監聽美食
+            const unsubFood = onSnapshot(collection(db, getPath('food')), (snapshot) => {
+                allFood = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if(data.tripId === currentTripId) allFood.push({ id: doc.id, ...data });
+                });
+                allFood.sort((a, b) => b.createdAt - a.createdAt);
+                updateDayFilters();
+                renderAll();
+            });
+            unsubscribes.push(unsubFood);
+        }
+
+        function clearBoard() {
+            document.getElementById('list-itinerary').innerHTML = '<div class="text-gray-400 text-sm text-center mt-10">尚無資料</div>';
+            document.getElementById('list-attraction').innerHTML = '<div class="text-gray-400 text-sm text-center mt-10">尚無資料</div>';
+            document.getElementById('list-food').innerHTML = '<div class="text-gray-400 text-sm text-center mt-10">尚無資料</div>';
+            document.getElementById('day-filters').innerHTML = '';
+            document.getElementById('btn-delete-day').classList.add('hidden');
+        }
+
+        // 從所有資料中提取唯一日期並排序
+        function getSortedUniqueDates() {
+            const allItems = [...allItinerary, ...allAttractions, ...allFood];
+            const dates = allItems.map(item => item.date || item.day).filter(Boolean);
+            return [...new Set(dates)].sort();
+        }
+
+        function updateDayFilters() {
+            const uniqueDates = getSortedUniqueDates();
+            
+            const container = document.getElementById('day-filters');
+            let html = `<button class="day-filter-btn ${currentDateFilter === 'all' ? 'active text-matcha font-bold border-b-2 border-matcha' : 'text-gray-400 hover:text-matcha'} pb-1 whitespace-nowrap px-2 transition-colors" data-date="all">全日程</button>`;
+            
+            uniqueDates.forEach((dateStr, index) => {
+                const dayNum = index + 1;
+                const shortDate = dateStr.includes('-') ? dateStr.substring(5).replace('-', '/') : dateStr; // 轉為 MM/DD
+                const isActive = currentDateFilter === dateStr;
+                const activeClass = isActive ? 'active text-matcha font-bold border-b-2 border-matcha' : 'text-gray-400 hover:text-matcha';
+                html += `<button class="day-filter-btn ${activeClass} pb-1 whitespace-nowrap px-2 transition-colors" data-date="${dateStr}">Day ${dayNum} (${shortDate})</button>`;
+            });
+            container.innerHTML = html;
+
+            // 處理「刪除本日」按鈕顯示邏輯
+            const deleteBtn = document.getElementById('btn-delete-day');
+            if (currentDateFilter === 'all' || uniqueDates.length === 0) {
+                deleteBtn.classList.add('hidden');
+            } else {
+                deleteBtn.classList.remove('hidden');
+                deleteBtn.onclick = () => {
+                    const shortDate = currentDateFilter.includes('-') ? currentDateFilter.substring(5).replace('-', '/') : currentDateFilter;
+                    window.showConfirmModal(
+                        '刪除本日行程', 
+                        `確定要刪除這天 (${shortDate}) 的「所有」行程、景點與美食嗎？\n⚠️ 此動作無法復原！`, 
+                        async () => {
+                            try {
+                                const allItems = [...allItinerary, ...allAttractions, ...allFood];
+                                const itemsToDelete = allItems.filter(item => (item.date || item.day) === currentDateFilter);
+                                
+                                for (const item of itemsToDelete) {
+                                    let colName = '';
+                                    if (item.time !== undefined) colName = 'itinerary';
+                                    else if (item.duration !== undefined) colName = 'attractions';
+                                    else colName = 'food';
+                                    await deleteDoc(doc(db, getPath(colName), item.id));
+                                }
+                                
+                                showToast(`已清空 ${shortDate} 的所有安排`);
+                                currentDateFilter = 'all'; // 重置過濾器
+                                updateDayFilters();
+                                renderAll();
+                            } catch (e) {
+                                console.error(e);
+                                showToast('刪除失敗');
+                            }
+                        }
+                    );
+                };
+            }
+
+            // 綁定過濾點擊事件
+            document.querySelectorAll('.day-filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    currentDateFilter = e.target.dataset.date;
+                    updateDayFilters(); // 重繪 active 狀態
+                    renderAll(); // 依據新天數重繪列表
+                });
+            });
+        }
+
+        function renderAll() {
+            renderList('itinerary', allItinerary, 'list-itinerary');
+            renderList('attractions', allAttractions, 'list-attraction');
+            renderList('food', allFood, 'list-food');
+        }
+
+        function renderList(type, dataArray, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            const uniqueDates = getSortedUniqueDates();
+            
+            // 依據日期過濾
+            const filteredData = dataArray.filter(item => {
+                if (currentDateFilter === 'all') return true;
+                const itemDate = item.date || item.day;
+                if (!itemDate) return true; // 沒綁定日期的預設顯示
+                return String(itemDate) === currentDateFilter;
+            });
+
+            if (filteredData.length === 0) {
+                container.innerHTML = '<div class="text-gray-400 text-sm text-center mt-10"><i class="fa-solid fa-leaf mb-2 opacity-50"></i><br>此分類尚無紀錄</div>';
+                return;
+            }
+
+            filteredData.forEach((item, index) => {
+                let content = '';
+                
+                // 計算這是第幾天 (Day N)
+                const itemDate = item.date || item.day;
+                const dayIndex = uniqueDates.indexOf(itemDate);
+                const dayBadgeText = dayIndex !== -1 ? `Day ${dayIndex + 1}` : '';
+                const shortDate = itemDate && itemDate.includes('-') ? itemDate.substring(5).replace('-', '/') : itemDate;
+                const badgeHTML = dayBadgeText ? `<span class="bg-matcha text-white px-2 py-0.5 rounded text-xs font-bold tracking-wider">${dayBadgeText} ${shortDate ? `(${shortDate})` : ''}</span>` : '';
+                const badgeHTMLGray = dayBadgeText ? `<span class="bg-wood text-white px-2 py-0.5 rounded text-xs font-bold mr-2">${dayBadgeText}</span>` : '';
+                
+                if (type === 'itinerary') {
+                    content = `
+                        <div class="flex items-center gap-3 border-b border-gray-100 pb-2 mb-2">
+                            ${badgeHTML}
+                            <span class="text-matcha font-mono text-sm"><i class="fa-regular fa-clock text-xs mr-1"></i>${item.time}</span>
+                        </div>
+                        <div class="font-serif font-bold text-lg text-sumi">${item.title}</div>
+                        ${item.notes ? `<div class="text-sm text-gray-500 mt-1 flex items-start gap-1"><i class="fa-solid fa-pen-nib mt-1 text-xs opacity-50"></i><span>${item.notes}</span></div>` : ''}
+                    `;
+                } else if (type === 'attractions') {
+                    const linkHTML = item.link ? `<a href="${item.link}" target="_blank" class="text-matcha hover:text-matchaHover transition text-sm inline-flex items-center gap-1 mt-2 bg-matcha/10 px-2 py-1 rounded-full"><i class="fa-solid fa-location-dot"></i> 地圖</a>` : '';
+                    content = `
+                        <div class="font-serif font-bold text-lg text-sumi flex items-center">${badgeHTMLGray}${item.name}</div>
+                        ${item.duration ? `<div class="text-sm text-gray-500 mt-1"><i class="fa-solid fa-hourglass-half text-xs mr-1"></i>停留: ${item.duration}</div>` : ''}
+                        ${linkHTML}
+                    `;
+                } else if (type === 'food') {
+                    const linkHTML = item.link ? `<a href="${item.link}" target="_blank" class="text-matcha hover:text-matchaHover transition text-sm inline-flex items-center gap-1 mt-2 bg-matcha/10 px-2 py-1 rounded-full"><i class="fa-solid fa-link"></i> 連結</a>` : '';
+                    content = `
+                        <div class="font-serif font-bold text-lg text-sumi flex items-center">${badgeHTMLGray}${item.name}</div>
+                        ${item.rec ? `<div class="text-sm text-sumi mt-2 bg-washi p-2 rounded border border-wood/30"><i class="fa-solid fa-star text-yellow-500 text-xs mr-1"></i>${item.rec}</div>` : ''}
+                        ${linkHTML}
+                    `;
+                }
+
+                const dataStr = encodeURIComponent(JSON.stringify(item));
+                const animDelay = index * 0.05;
+                const cardHTML = `
+                    <div class="zen-card p-4 relative group animate-fade-up" style="animation-delay: ${animDelay}s; opacity: 0;">
+                        ${content}
+                        <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                            <button onclick="window.openEditModal('${item.id}', '${type}', '${dataStr}')" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-matcha hover:text-white flex items-center justify-center transition text-gray-500"><i class="fa-solid fa-pen text-xs"></i></button>
+                            <button onclick="window.deleteItem('${item.id}', '${type}', '${item.name || item.title}')" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-red-400 hover:text-white flex items-center justify-center transition text-gray-500"><i class="fa-solid fa-trash text-xs"></i></button>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        // 新增旅程
+        document.getElementById('form-new-trip').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+            
+            const tripName = document.getElementById('new-trip-name').value;
+            try {
+                const docRef = await addDoc(collection(db, getPath('trips')), {
+                    name: tripName,
+                    createdAt: Date.now()
+                });
+                currentTripId = docRef.id;
+                localStorage.setItem('lastTripId', currentTripId);
+                closeTripModal();
+                e.target.reset();
+                showToast('已建立新計畫！');
+            } catch (error) {
+                console.error("建立旅程失敗", error);
+                showToast('建立失敗');
+            }
+        });
+
+        // 確認是否已選擇旅程
+        function checkTripSelected() {
+            if (!currentTripId) {
+                window.showConfirmModal('未選擇行程', '請先在左上角選擇一個行程，或點擊「+ 新行程」建立新計畫！', null, true, '<i class="fa-solid fa-plane-slash text-matcha"></i>');
+                return false;
+            }
+            return true;
+        }
+
+        // 新增行程
         document.getElementById('form-itinerary').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!currentUser) return;
+            if (!checkTripSelected()) return;
+            
             const data = {
-                day: document.getElementById('it-day').value,
+                tripId: currentTripId,
+                date: document.getElementById('it-date').value,
                 time: document.getElementById('it-time').value,
                 title: document.getElementById('it-title').value,
                 notes: document.getElementById('it-notes').value,
                 createdAt: Date.now()
             };
+            if(!data.date) {
+                window.showConfirmModal('資料不完整', '請選擇行程日期！', null, true);
+                return;
+            }
+            
             await addDoc(collection(db, getPath('itinerary')), data);
+            
+            // 保留日期，方便連續輸入
+            const savedDate = data.date;
             e.target.reset();
+            document.getElementById('it-date').value = savedDate;
+            
+            showToast('已新增行程！');
         });
 
+        // 新增景點
         document.getElementById('form-attraction').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!currentUser) return;
+            if (!checkTripSelected()) return;
+            
             const data = {
+                tripId: currentTripId,
+                date: document.getElementById('att-date').value || null,
                 name: document.getElementById('att-name').value,
                 link: document.getElementById('att-link').value,
                 duration: document.getElementById('att-duration').value,
                 createdAt: Date.now()
             };
             await addDoc(collection(db, getPath('attractions')), data);
+            
+            const savedDate = data.date;
             e.target.reset();
+            if(savedDate) document.getElementById('att-date').value = savedDate;
+            
+            showToast('已加入景點清單！');
         });
 
+        // 新增美食
         document.getElementById('form-food').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!currentUser) return;
+            if (!checkTripSelected()) return;
+            
             const data = {
+                tripId: currentTripId,
+                date: document.getElementById('food-date').value || null,
                 name: document.getElementById('food-name').value,
                 rec: document.getElementById('food-rec').value,
                 link: document.getElementById('food-link').value,
                 createdAt: Date.now()
             };
             await addDoc(collection(db, getPath('food')), data);
+            
+            const savedDate = data.date;
             e.target.reset();
+            if(savedDate) document.getElementById('food-date').value = savedDate;
+            
+            showToast('已記錄美食！');
         });
 
-        // 渲染 UI 的共用卡片產生器
-        function createCardHTML(content, id, collectionName, rawData) {
-            // 將 rawData 轉為字串綁定在屬性上以便編輯
-            const dataStr = encodeURIComponent(JSON.stringify(rawData));
-            return `
-                <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 relative group animate-[fadeIn_0.3s_ease]">
-                    ${content}
-                    <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                        <button onclick="window.openEditModal('${id}', '${collectionName}', '${dataStr}')" class="text-xs bg-gray-100 hover:bg-matcha hover:text-white px-2 py-1 rounded transition">編輯</button>
-                        <button onclick="window.deleteItem('${id}', '${collectionName}')" class="text-xs bg-gray-100 hover:bg-red-400 hover:text-white px-2 py-1 rounded transition">刪除</button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderItinerary(items) {
-            const container = document.getElementById('list-itinerary');
-            container.innerHTML = '';
-            items.forEach(item => {
-                const content = `
-                    <div class="flex items-center gap-3">
-                        <div class="bg-matchaLight text-white px-2 py-1 rounded text-sm font-bold shadow-sm whitespace-nowrap">Day ${item.day}</div>
-                        <div class="text-matchaDark font-mono text-sm">${item.time}</div>
-                    </div>
-                    <div class="mt-2 font-medium text-lg text-charcoal">${item.title}</div>
-                    ${item.notes ? `<div class="text-sm text-gray-500 mt-1">📝 ${item.notes}</div>` : ''}
-                `;
-                container.innerHTML += createCardHTML(content, item.id, 'itinerary', item);
-            });
-        }
-
-        function renderAttractions(items) {
-            const container = document.getElementById('list-attraction');
-            container.innerHTML = '';
-            items.forEach(item => {
-                const linkHTML = item.link ? `<a href="${item.link}" target="_blank" class="text-matcha hover:underline text-sm inline-flex items-center gap-1 mt-2">📍 Google Maps</a>` : '';
-                const durationHTML = item.duration ? `<div class="text-sm text-gray-500 mt-1">⏱️ 停留: ${item.duration}</div>` : '';
-                const content = `
-                    <div class="font-medium text-lg text-charcoal">${item.name}</div>
-                    ${durationHTML}
-                    ${linkHTML}
-                `;
-                container.innerHTML += createCardHTML(content, item.id, 'attractions', item);
-            });
-        }
-
-        function renderFood(items) {
-            const container = document.getElementById('list-food');
-            container.innerHTML = '';
-            items.forEach(item => {
-                const linkHTML = item.link ? `<a href="${item.link}" target="_blank" class="text-matcha hover:underline text-sm inline-flex items-center gap-1 mt-2">🔗 相關連結</a>` : '';
-                const recHTML = item.rec ? `<div class="text-sm text-gray-600 mt-1 bg-muji inline-block px-2 py-1 rounded">⭐ 推薦: ${item.rec}</div>` : '';
-                const content = `
-                    <div class="font-medium text-lg text-charcoal">${item.name}</div>
-                    ${recHTML}
-                    <br>
-                    ${linkHTML}
-                `;
-                container.innerHTML += createCardHTML(content, item.id, 'food', item);
-            });
-        }
-
-        // 刪除功能 (綁定到 global)
-        window.deleteItem = async (id, collectionName) => {
+        // 刪除單一項目功能
+        window.deleteItem = (id, collectionName, itemName) => {
             if (!currentUser) return;
-            try {
-                await deleteDoc(doc(db, getPath(collectionName), id));
-            } catch (error) {
-                console.error("Delete error", error);
-            }
+            const typeName = collectionName === 'itinerary' ? '行程' : (collectionName === 'attractions' ? '景點' : '美食');
+            
+            window.showConfirmModal(
+                `刪除${typeName}`, 
+                `確定要刪除「${itemName}」嗎？`, 
+                async () => {
+                    try {
+                        await deleteDoc(doc(db, getPath(collectionName), id));
+                        showToast(`已刪除${typeName}`);
+                    } catch (error) { 
+                        console.error(error); 
+                        showToast('刪除失敗');
+                    }
+                }
+            );
         };
 
-        // 編輯 Modal 相關邏輯
-        const modal = document.getElementById('edit-modal');
+        const tripModal = document.getElementById('trip-modal');
+        const editModal = document.getElementById('edit-modal');
         const modalFields = document.getElementById('modal-fields');
         let currentEditId = null;
         let currentEditCollection = null;
+
+        window.openAddTripModal = () => tripModal.classList.add('active');
+        window.closeTripModal = () => tripModal.classList.remove('active');
 
         window.openEditModal = (id, collectionName, dataStr) => {
             const data = JSON.parse(decodeURIComponent(dataStr));
             currentEditId = id;
             currentEditCollection = collectionName;
             
-            modalFields.innerHTML = ''; // 清空
+            modalFields.innerHTML = '';
             
-            // 根據不同集合動態產生輸入框
+            // 兼容舊資料 (day 轉 date)
+            const itemDate = data.date || data.day || '';
+            
             if (collectionName === 'itinerary') {
                 modalFields.innerHTML = `
-                    <label class="block text-sm text-gray-600">第幾天</label>
-                    <input type="number" id="edit-day" class="input-wafu w-full p-2 rounded-md mb-2" value="${data.day}" required>
-                    <label class="block text-sm text-gray-600">時間</label>
-                    <input type="time" id="edit-time" class="input-wafu w-full p-2 rounded-md mb-2" value="${data.time}" required>
-                    <label class="block text-sm text-gray-600">行程名稱</label>
-                    <input type="text" id="edit-title" class="input-wafu w-full p-2 rounded-md mb-2" value="${data.title}" required>
-                    <label class="block text-sm text-gray-600">備註</label>
-                    <input type="text" id="edit-notes" class="input-wafu w-full p-2 rounded-md" value="${data.notes || ''}">
+                    <div class="input-wrapper mb-3"><i class="fa-solid fa-calendar-day input-icon"></i><input type="text" id="edit-date" class="input-zen date-picker" value="${itemDate}" placeholder="選擇日期" required readonly style="cursor: pointer;"></div>
+                    <div class="input-wrapper mb-3"><i class="fa-regular fa-clock input-icon"></i><input type="text" id="edit-time" class="input-zen time-picker" value="${data.time}" placeholder="選擇時間" required readonly style="cursor: pointer;"></div>
+                    <div class="input-wrapper mb-3"><i class="fa-solid fa-location-dot input-icon"></i><input type="text" id="edit-title" class="input-zen" value="${data.title}" placeholder="行程名稱" required></div>
+                    <div class="input-wrapper"><i class="fa-solid fa-pen input-icon text-xs"></i><input type="text" id="edit-notes" class="input-zen" value="${data.notes || ''}" placeholder="備註"></div>
                 `;
+                // Modal 內的輸入框需要重新初始化選擇器
+                setTimeout(() => {
+                    flatpickr("#edit-time", { enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true, disableMobile: "true" });
+                    flatpickr("#edit-date", { dateFormat: "Y-m-d", disableMobile: "true" });
+                }, 50);
             } else if (collectionName === 'attractions') {
                 modalFields.innerHTML = `
-                    <label class="block text-sm text-gray-600">景點名稱</label>
-                    <input type="text" id="edit-name" class="input-wafu w-full p-2 rounded-md mb-2" value="${data.name}" required>
-                    <label class="block text-sm text-gray-600">地圖連結</label>
-                    <input type="url" id="edit-link" class="input-wafu w-full p-2 rounded-md mb-2" value="${data.link || ''}">
-                    <label class="block text-sm text-gray-600">停留時間</label>
-                    <input type="text" id="edit-duration" class="input-wafu w-full p-2 rounded-md" value="${data.duration || ''}">
+                    <div class="input-wrapper mb-3"><i class="fa-solid fa-calendar-day input-icon"></i><input type="text" id="edit-date" class="input-zen date-picker" value="${itemDate}" placeholder="綁定日期 (選填)" readonly style="cursor: pointer;"></div>
+                    <div class="input-wrapper mb-3"><i class="fa-solid fa-camera input-icon"></i><input type="text" id="edit-name" class="input-zen" value="${data.name}" placeholder="景點名稱" required></div>
+                    <div class="input-wrapper mb-3"><i class="fa-solid fa-map-location-dot input-icon"></i><input type="url" id="edit-link" class="input-zen" value="${data.link || ''}" placeholder="地圖連結"></div>
+                    <div class="input-wrapper"><i class="fa-solid fa-hourglass-half input-icon"></i><input type="text" id="edit-duration" class="input-zen" value="${data.duration || ''}" placeholder="停留時間"></div>
                 `;
+                setTimeout(() => { flatpickr("#edit-date", { dateFormat: "Y-m-d", disableMobile: "true" }); }, 50);
             } else if (collectionName === 'food') {
                 modalFields.innerHTML = `
-                    <label class="block text-sm text-gray-600">餐廳名稱</label>
-                    <input type="text" id="edit-name" class="input-wafu w-full p-2 rounded-md mb-2" value="${data.name}" required>
-                    <label class="block text-sm text-gray-600">必吃推薦</label>
-                    <input type="text" id="edit-rec" class="input-wafu w-full p-2 rounded-md mb-2" value="${data.rec || ''}">
-                    <label class="block text-sm text-gray-600">相關連結</label>
-                    <input type="url" id="edit-link" class="input-wafu w-full p-2 rounded-md" value="${data.link || ''}">
+                    <div class="input-wrapper mb-3"><i class="fa-solid fa-calendar-day input-icon"></i><input type="text" id="edit-date" class="input-zen date-picker" value="${itemDate}" placeholder="綁定日期 (選填)" readonly style="cursor: pointer;"></div>
+                    <div class="input-wrapper mb-3"><i class="fa-solid fa-store input-icon"></i><input type="text" id="edit-name" class="input-zen" value="${data.name}" placeholder="餐廳名稱" required></div>
+                    <div class="input-wrapper mb-3"><i class="fa-solid fa-star input-icon"></i><input type="text" id="edit-rec" class="input-zen" value="${data.rec || ''}" placeholder="必吃推薦"></div>
+                    <div class="input-wrapper"><i class="fa-solid fa-link input-icon"></i><input type="url" id="edit-link" class="input-zen" value="${data.link || ''}" placeholder="相關連結"></div>
                 `;
+                setTimeout(() => { flatpickr("#edit-date", { dateFormat: "Y-m-d", disableMobile: "true" }); }, 50);
             }
-
-            modal.classList.add('active');
+            editModal.classList.add('active');
         };
 
-        // 關閉與儲存 Modal
-        const closeModal = () => {
-            modal.classList.remove('active');
+        window.closeEditModal = () => {
+            editModal.classList.remove('active');
             currentEditId = null;
             currentEditCollection = null;
         };
 
-        document.getElementById('modal-cancel').addEventListener('click', closeModal);
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal(); // 點擊背景關閉
+        // 點擊背景關閉 Modal
+        [tripModal, editModal].forEach(m => {
+            m.addEventListener('click', (e) => {
+                if (e.target === m) m.classList.remove('active');
+            });
         });
 
         document.getElementById('modal-save').addEventListener('click', async () => {
@@ -442,19 +948,21 @@
             let updatedData = {};
             if (currentEditCollection === 'itinerary') {
                 updatedData = {
-                    day: document.getElementById('edit-day').value,
+                    date: document.getElementById('edit-date').value,
                     time: document.getElementById('edit-time').value,
                     title: document.getElementById('edit-title').value,
                     notes: document.getElementById('edit-notes').value
                 };
             } else if (currentEditCollection === 'attractions') {
                 updatedData = {
+                    date: document.getElementById('edit-date').value || null,
                     name: document.getElementById('edit-name').value,
                     link: document.getElementById('edit-link').value,
                     duration: document.getElementById('edit-duration').value
                 };
             } else if (currentEditCollection === 'food') {
                 updatedData = {
+                    date: document.getElementById('edit-date').value || null,
                     name: document.getElementById('edit-name').value,
                     rec: document.getElementById('edit-rec').value,
                     link: document.getElementById('edit-link').value
@@ -463,12 +971,10 @@
 
             try {
                 await updateDoc(doc(db, getPath(currentEditCollection), currentEditId), updatedData);
-                closeModal();
-            } catch (error) {
-                console.error("Update error", error);
-            }
+                closeEditModal();
+                showToast('資料已更新！');
+            } catch (error) { console.error(error); }
         });
-
     </script>
 </body>
 </html>
