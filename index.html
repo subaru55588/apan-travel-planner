@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>和風旅行規劃帳</title>
+    <!-- 引入 Tailwind CSS 並配置日系顏色 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        muji: '#F9F6F0', // 米白背景
+                        matcha: '#8BA989', // 抹茶綠
+                        matchaLight: '#A2C2A0',
+                        matchaDark: '#708E6E',
+                        sakura: '#F6D2D9', // 櫻花粉
+                        charcoal: '#4A4A4A', // 深灰字體
+                        wood: '#D4C3A3'
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #F9F6F0;
+            color: #4A4A4A;
+            background-image: radial-gradient(#D4C3A3 0.5px, transparent 0.5px);
+            background-size: 20px 20px;
+        }
+        .wafu-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(139, 169, 137, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .wafu-card:hover {
+            box-shadow: 0 6px 20px rgba(139, 169, 137, 0.15);
+        }
+        .input-wafu {
+            border: 1px solid #D4C3A3;
+            background: #F9F6F0;
+            transition: all 0.3s ease;
+        }
+        .input-wafu:focus {
+            outline: none;
+            border-color: #8BA989;
+            box-shadow: 0 0 0 3px rgba(139, 169, 137, 0.2);
+            background: #fff;
+        }
+        .btn-matcha {
+            background-color: #8BA989;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .btn-matcha:hover {
+            background-color: #708E6E;
+            transform: translateY(-1px);
+        }
+        .btn-danger {
+            background-color: #e09f9f;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .btn-danger:hover {
+            background-color: #c98080;
+        }
+        
+        /* Modal Transitions */
+        .modal-overlay {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            transform: scale(0.95) translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.active .modal-content {
+            transform: scale(1) translateY(0);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 font-sans">
+
+    <header class="max-w-7xl mx-auto mb-10 text-center">
+        <h1 class="text-4xl md:text-5xl font-bold text-matchaDark mb-2 tracking-widest">
+            <span class="text-matcha">❀</span> 旅の計画帳
+        </h1>
+        <p class="text-charcoal opacity-70 tracking-wider">多人即時協作・旅遊行程規劃</p>
+        <div id="auth-status" class="mt-2 text-sm text-matcha font-medium animate-pulse">連線中...</div>
+    </header>
+
+    <main class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        
+        <!-- 區塊 1: 行程安排 -->
+        <section class="wafu-card p-6 flex flex-col h-full">
+            <h2 class="text-2xl font-medium mb-4 text-matcha border-b-2 border-matchaLight pb-2">📅 行程安排</h2>
+            
+            <form id="form-itinerary" class="mb-6 space-y-3">
+                <div class="flex gap-2">
+                    <input type="number" id="it-day" placeholder="第幾天?" class="input-wafu w-1/3 p-2 rounded-md" required min="1">
+                    <input type="time" id="it-time" class="input-wafu w-2/3 p-2 rounded-md" required>
+                </div>
+                <input type="text" id="it-title" placeholder="行程名稱" class="input-wafu w-full p-2 rounded-md" required>
+                <input type="text" id="it-notes" placeholder="備註 (選填)" class="input-wafu w-full p-2 rounded-md">
+                <button type="submit" class="btn-matcha w-full py-2 rounded-md font-medium">＋ 新增行程</button>
+            </form>
+            
+            <div id="list-itinerary" class="space-y-4 overflow-y-auto flex-1 pr-2" style="max-height: 60vh;">
+                <!-- 列表動態產生區 -->
+            </div>
+        </section>
+
+        <!-- 區塊 2: 景點口袋名單 -->
+        <section class="wafu-card p-6 flex flex-col h-full">
+            <h2 class="text-2xl font-medium mb-4 text-matcha border-b-2 border-matchaLight pb-2">⛩️ 景點口袋名單</h2>
+            
+            <form id="form-attraction" class="mb-6 space-y-3">
+                <input type="text" id="att-name" placeholder="景點名稱" class="input-wafu w-full p-2 rounded-md" required>
+                <input type="url" id="att-link" placeholder="Google Maps 連結" class="input-wafu w-full p-2 rounded-md">
+                <input type="text" id="att-duration" placeholder="預計停留時間 (例: 2小時)" class="input-wafu w-full p-2 rounded-md">
+                <button type="submit" class="btn-matcha w-full py-2 rounded-md font-medium">＋ 新增景點</button>
+            </form>
+            
+            <div id="list-attraction" class="space-y-4 overflow-y-auto flex-1 pr-2" style="max-height: 60vh;">
+                <!-- 列表動態產生區 -->
+            </div>
+        </section>
+
+        <!-- 區塊 3: 在地美食清單 -->
+        <section class="wafu-card p-6 flex flex-col h-full">
+            <h2 class="text-2xl font-medium mb-4 text-matcha border-b-2 border-matchaLight pb-2">🍱 在地美食清單</h2>
+            
+            <form id="form-food" class="mb-6 space-y-3">
+                <input type="text" id="food-name" placeholder="餐廳名稱" class="input-wafu w-full p-2 rounded-md" required>
+                <input type="text" id="food-rec" placeholder="必吃推薦 (例: 醬油拉麵)" class="input-wafu w-full p-2 rounded-md">
+                <input type="url" id="food-link" placeholder="食記/導航連結" class="input-wafu w-full p-2 rounded-md">
+                <button type="submit" class="btn-matcha w-full py-2 rounded-md font-medium">＋ 新增美食</button>
+            </form>
+            
+            <div id="list-food" class="space-y-4 overflow-y-auto flex-1 pr-2" style="max-height: 60vh;">
+                <!-- 列表動態產生區 -->
+            </div>
+        </section>
+
+    </main>
+
+    <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center modal-overlay p-4">
+        <div class="bg-muji wafu-card w-full max-w-md p-6 modal-content flex flex-col max-h-[90vh]">
+            <h3 id="modal-title" class="text-xl font-bold text-matchaDark mb-4 border-b-2 border-matchaLight pb-2">編輯資料</h3>
+            <form id="modal-form" class="space-y-3 flex-1 overflow-y-auto pr-2">
+                <div id="modal-fields" class="space-y-3"></div>
+            </form>
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-wood">
+                <button type="button" id="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition">取消</button>
+                <button type="button" id="modal-save" class="px-4 py-2 btn-matcha rounded-md">儲存變更</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // =========================================================================
+        // 【請把你的 Firebase Config 貼在這裡】 
+        // 說明：若在外部環境執行，請將下方的 YOUR_... 替換成你 Firebase 後台取得的設定
+        // =========================================================================
+        let customFirebaseConfig = {
+            apiKey: "AIzaSyDCC0uaj6AVgzJVDuvUCOxKCLIK6HcYvuU",
+            authDomain: "my-travel-app-a3c9a.firebaseapp.com",
+            projectId: "my-travel-app-a3c9a",
+            storageBucket: "my-travel-app-a3c9a.firebasestorage.app",
+            messagingSenderId: "1076234934924",
+            appId: "1:1076234934924:web:e52177a43c55195a3eb9a9",
+            measurementId: "G-4VJJ4XBNDR"
+        };
+
+        // 自動適配系統環境：若環境有提供設定檔則優先使用，否則使用上方的自訂設定
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : customFirebaseConfig;
+        const currentAppId = typeof __app_id !== 'undefined' ? __app_id : 'my-travel-app';
+
+        // 初始化 Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        let currentUser = null;
+
+        // 處理路徑邏輯，符合協作環境規範
+        function getPath(collectionName) {
+            if (typeof __app_id !== 'undefined') {
+                return `artifacts/${currentAppId}/public/data/${collectionName}`;
+            }
+            return collectionName; // 在本地或外部署時使用正常的集合名稱
+        }
+
+        async function initApp() {
+            try {
+                // 優先使用系統提供的 Token，否則使用匿名登入
+                if (typeof __initial_auth_token !== 'undefined') {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                currentUser = auth.currentUser;
+                document.getElementById('auth-status').innerText = '🟢 已連線・即時同步中';
+                document.getElementById('auth-status').classList.remove('animate-pulse');
+                
+                // 開始監聽資料
+                listenToData();
+            } catch (error) {
+                console.error("登入錯誤:", error);
+                document.getElementById('auth-status').innerText = '🔴 連線失敗，請檢查設定';
+                document.getElementById('auth-status').classList.add('text-red-500');
+            }
+        }
+
+        initApp();
+
+        function listenToData() {
+            if (!currentUser) return;
+
+            // 1. 監聽行程
+            onSnapshot(collection(db, getPath('itinerary')), (snapshot) => {
+                let data = [];
+                snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
+                // 在前端排序 (符合不能在後端使用 orderBy 的規範)
+                data.sort((a, b) => {
+                    if (Number(a.day) !== Number(b.day)) return Number(a.day) - Number(b.day);
+                    return a.time.localeCompare(b.time);
+                });
+                renderItinerary(data);
+            }, (error) => console.error("Itinerary Error:", error));
+
+            // 2. 監聽景點
+            onSnapshot(collection(db, getPath('attractions')), (snapshot) => {
+                let data = [];
+                snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
+                data.sort((a, b) => b.createdAt - a.createdAt); // 最新在前
+                renderAttractions(data);
+            }, (error) => console.error("Attractions Error:", error));
+
+            // 3. 監聽美食
+            onSnapshot(collection(db, getPath('food')), (snapshot) => {
+                let data = [];
+                snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
+                data.sort((a, b) => b.createdAt - a.createdAt);
+                renderFood(data);
+            }, (error) => console.error("Food Error:", error));
+        }
+
+        // 表單提交事件
+        document.getElementById('form-itinerary').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+            const data = {
+                day: document.getElementById('it-day').value,
+                time: document.getElementById('it-time').value,
+                title: document.getElementById('it-title').value,
+                notes: document.getElementById('it-notes').value,
+                createdAt: Date.now()
+            };
+            await addDoc(collection(db, getPath('itinerary')), data);
+            e.target.reset();
+        });
+
+        document.getElementById('form-attraction').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+            const data = {
+                name: document.getElementById('att-name').value,
+                link: document.getElementById('att-link').value,
+                duration: document.getElementById('att-duration').value,
+                createdAt: Date.now()
+            };
+            await addDoc(collection(db, getPath('attractions')), data);
+            e.target.reset();
+        });
+
+        document.getElementById('form-food').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+            const data = {
+                name: document.getElementById('food-name').value,
+                rec: document.getElementById('food-rec').value,
+                link: document.getElementById('food-link').value,
+                createdAt: Date.now()
+            };
+            await addDoc(collection(db, getPath('food')), data);
+            e.target.reset();
+        });
+
+        // 渲染 UI 的共用卡片產生器
+        function createCardHTML(content, id, collectionName, rawData) {
+            // 將 rawData 轉為字串綁定在屬性上以便編輯
+            const dataStr = encodeURIComponent(JSON.stringify(rawData));
+            return `
+                <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-100 relative group animate-[fadeIn_0.3s_ease]">
+                    ${content}
+                    <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                        <button onclick="window.openEditModal('${id}', '${collectionName}', '${dataStr}')" class="text-xs bg-gray-100 hover:bg-matcha hover:text-white px-2 py-1 rounded transition">編輯</button>
+                        <button onclick="window.deleteItem('${id}', '${collectionName}')" class="text-xs bg-gray-100 hover:bg-red-400 hover:text-white px-2 py-1 rounded transition">刪除</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderItinerary(items) {
+            const container = document.getElementById('list-itinerary');
+            container.innerHTML = '';
+            items.forEach(item => {
+                const content = `
+                    <div class="flex items-center gap-3">
+                        <div class="bg-matchaLight text-white px-2 py-1 rounded text-sm font-bold shadow-sm whitespace-nowrap">Day ${item.day}</div>
+                        <div class="text-matchaDark font-mono text-sm">${item.time}</div>
+                    </div>
+                    <div class="mt-2 font-medium text-lg text-charcoal">${item.title}</div>
+                    ${item.notes ? `<div class="text-sm text-gray-500 mt-1">📝 ${item.notes}</div>` : ''}
+                `;
+                container.innerHTML += createCardHTML(content, item.id, 'itinerary', item);
+            });
+        }
+
+        function renderAttractions(items) {
+            const container = document.getElementById('list-attraction');
+            container.innerHTML = '';
+            items.forEach(item => {
+                const linkHTML = item.link ? `<a href="${item.link}" target="_blank" class="text-matcha hover:underline text-sm inline-flex items-center gap-1 mt-2">📍 Google Maps</a>` : '';
+                const durationHTML = item.duration ? `<div class="text-sm text-gray-500 mt-1">⏱️ 停留: ${item.duration}</div>` : '';
+                const content = `
+                    <div class="font-medium text-lg text-charcoal">${item.name}</div>
+                    ${durationHTML}
+                    ${linkHTML}
+                `;
+                container.innerHTML += createCardHTML(content, item.id, 'attractions', item);
+            });
+        }
+
+        function renderFood(items) {
+            const container = document.getElementById('list-food');
+            container.innerHTML = '';
+            items.forEach(item => {
+                const linkHTML = item.link ? `<a href="${item.link}" target="_blank" class="text-matcha hover:underline text-sm inline-flex items-center gap-1 mt-2">🔗 相關連結</a>` : '';
+                const recHTML = item.rec ? `<div class="text-sm text-gray-600 mt-1 bg-muji inline-block px-2 py-1 rounded">⭐ 推薦: ${item.rec}</div>` : '';
+                const content = `
+                    <div class="font-medium text-lg text-charcoal">${item.name}</div>
+                    ${recHTML}
+                    <br>
+                    ${linkHTML}
+                `;
+                container.innerHTML += createCardHTML(content, item.id, 'food', item);
+            });
+        }
+
+        // 刪除功能 (綁定到 global)
+        window.deleteItem = async (id, collectionName) => {
+            if (!currentUser) return;
+            try {
+                await deleteDoc(doc(db, getPath(collectionName), id));
+            } catch (error) {
+                console.error("Delete error", error);
+            }
+        };
+
+        // 編輯 Modal 相關邏輯
+        const modal = document.getElementById('edit-modal');
+        const modalFields = document.getElementById('modal-fields');
+        let currentEditId = null;
+        let currentEditCollection = null;
+
+        window.openEditModal = (id, collectionName, dataStr) => {
+            const data = JSON.parse(decodeURIComponent(dataStr));
+            currentEditId = id;
+            currentEditCollection = collectionName;
+            
+            modalFields.innerHTML = ''; // 清空
+            
+            // 根據不同集合動態產生輸入框
+            if (collectionName === 'itinerary') {
+                modalFields.innerHTML = `
+                    <label class="block text-sm text-gray-600">第幾天</label>
+                    <input type="number" id="edit-day" class="input-wafu w-full p-2 rounded-md mb-2" value="${data.day}" required>
+                    <label class="block text-sm text-gray-600">時間</label>
+                    <input type="time" id="edit-time" class="input-wafu w-full p-2 rounded-md mb-2" value="${data.time}" required>
+                    <label class="block text-sm text-gray-600">行程名稱</label>
+                    <input type="text" id="edit-title" class="input-wafu w-full p-2 rounded-md mb-2" value="${data.title}" required>
+                    <label class="block text-sm text-gray-600">備註</label>
+                    <input type="text" id="edit-notes" class="input-wafu w-full p-2 rounded-md" value="${data.notes || ''}">
+                `;
+            } else if (collectionName === 'attractions') {
+                modalFields.innerHTML = `
+                    <label class="block text-sm text-gray-600">景點名稱</label>
+                    <input type="text" id="edit-name" class="input-wafu w-full p-2 rounded-md mb-2" value="${data.name}" required>
+                    <label class="block text-sm text-gray-600">地圖連結</label>
+                    <input type="url" id="edit-link" class="input-wafu w-full p-2 rounded-md mb-2" value="${data.link || ''}">
+                    <label class="block text-sm text-gray-600">停留時間</label>
+                    <input type="text" id="edit-duration" class="input-wafu w-full p-2 rounded-md" value="${data.duration || ''}">
+                `;
+            } else if (collectionName === 'food') {
+                modalFields.innerHTML = `
+                    <label class="block text-sm text-gray-600">餐廳名稱</label>
+                    <input type="text" id="edit-name" class="input-wafu w-full p-2 rounded-md mb-2" value="${data.name}" required>
+                    <label class="block text-sm text-gray-600">必吃推薦</label>
+                    <input type="text" id="edit-rec" class="input-wafu w-full p-2 rounded-md mb-2" value="${data.rec || ''}">
+                    <label class="block text-sm text-gray-600">相關連結</label>
+                    <input type="url" id="edit-link" class="input-wafu w-full p-2 rounded-md" value="${data.link || ''}">
+                `;
+            }
+
+            modal.classList.add('active');
+        };
+
+        // 關閉與儲存 Modal
+        const closeModal = () => {
+            modal.classList.remove('active');
+            currentEditId = null;
+            currentEditCollection = null;
+        };
+
+        document.getElementById('modal-cancel').addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal(); // 點擊背景關閉
+        });
+
+        document.getElementById('modal-save').addEventListener('click', async () => {
+            if (!currentUser || !currentEditId) return;
+            
+            let updatedData = {};
+            if (currentEditCollection === 'itinerary') {
+                updatedData = {
+                    day: document.getElementById('edit-day').value,
+                    time: document.getElementById('edit-time').value,
+                    title: document.getElementById('edit-title').value,
+                    notes: document.getElementById('edit-notes').value
+                };
+            } else if (currentEditCollection === 'attractions') {
+                updatedData = {
+                    name: document.getElementById('edit-name').value,
+                    link: document.getElementById('edit-link').value,
+                    duration: document.getElementById('edit-duration').value
+                };
+            } else if (currentEditCollection === 'food') {
+                updatedData = {
+                    name: document.getElementById('edit-name').value,
+                    rec: document.getElementById('edit-rec').value,
+                    link: document.getElementById('edit-link').value
+                };
+            }
+
+            try {
+                await updateDoc(doc(db, getPath(currentEditCollection), currentEditId), updatedData);
+                closeModal();
+            } catch (error) {
+                console.error("Update error", error);
+            }
+        });
+
+    </script>
+</body>
+</html>
